@@ -1,5 +1,6 @@
 package com.pinyougou.pay.service.impl;
 
+import com.alibaba.dubbo.config.annotation.Service;
 import com.github.wxpay.sdk.WXPayUtil;
 import com.pinyougou.pay.service.WeiXinPayService;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,12 +9,13 @@ import utils.HttpClient;
 import java.util.HashMap;
 import java.util.Map;
 
+@Service
 public class WeiXinPayServiceImpl implements WeiXinPayService {
-    @Value("appid")
+    @Value("${appid}")
     private String appid;
-    @Value("partner")
+    @Value("${partner}")
     private String partner;
-    @Value("partnerkey")
+    @Value("${partnerkey}")
     private String partnerkey;
 
     @Override
@@ -51,6 +53,32 @@ public class WeiXinPayServiceImpl implements WeiXinPayService {
             return new HashMap<>();
         }
     }
+//查询支付状态
+    @Override
+    public Map queryPayStatus(String out_trade_no) {
+        Map param = new HashMap();
+        param.put("appid", appid);//公众账号ID
+        param.put("mch_id", partner);//商户号
+        param.put("out_trade_no", out_trade_no);//订单号
+        param.put("nonce_str", WXPayUtil.generateNonceStr());//随机字符串
+        String url = "https://api.mch.weixin.qq.com/pay/orderquery";
+        try {
+            String xmlParam = WXPayUtil.generateSignedXml(param, partnerkey);
+            HttpClient client = new HttpClient(url);
+            client.setHttps(true);
+            client.setXmlParam(xmlParam);
+            client.post();
+            String result = client.getContent();
+            Map<String, String> map = WXPayUtil.xmlToMap(result);
+            System.out.println(map);
+            return map;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 
 }
+
+
 
